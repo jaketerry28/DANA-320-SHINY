@@ -2,5 +2,5 @@ Excel File is too large for Github : https://catalog.data.gov/dataset/real-estat
 
 
 Useful Links:
-* https://coltongearhart.quarto.pub/introduction-to-shiny/#/adding-behavior
+* https://coltongearhart.quarto.pub/introduction-to-shiny
 * https://shiny.posit.co/r/gallery/
