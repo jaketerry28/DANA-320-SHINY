@@ -43,14 +43,27 @@ ui <- fluidPage(
         `live-search` = TRUE,
         `selected-text-format` = "count > 3"
       )
+    ),
+    pickerInput(
+      inputId = "types",
+      label = "Choose Property Type(s):",
+      choices = sort(unique(df$`Property Type`)),
+      selected = unique(df$`Property Type`),
+      multiple = TRUE,
+      options = list(
+        `actions-box` = TRUE,
+        `live-search` = TRUE,
+        `selected-text-format` = "count > 3"
+      )
     )
   ),
-
+  
   
   # create spot for plot
   mainPanel(
     plotlyOutput(outputId = "plot1"),
-    plotlyOutput(outputId = "plot2")
+    plotlyOutput(outputId = "plot2"),
+    plotlyOutput(outputId = "plot3")
   )
 )
 
@@ -111,29 +124,48 @@ server <- function(input, output) {
         .groups = "drop"
       )
     
-  residential_year$`List Year` <- as.numeric(residential_year$`List Year`)
+    residential_year$`List Year` <- as.numeric(residential_year$`List Year`)
     
-  p <- ggplot(residential_year, aes(x = `List Year`, y = value, color = `Residential Type`, group = `Residential Type`, text = paste0(
-    "<b>Type:</b> ", `Residential Type`, "<br>",
-    "<b>Year:</b> ", `List Year`, "<br>",
-    "<b>", input$yvar, ":</b> ", scales::comma(value)
-  ))) +
-    geom_line(linewidth = 1.1) +
-    geom_point(size = 2) +
-    scale_y_continuous(labels = scales::comma) +
-    labs(
-      x = "List Year",
-      y = input$yvar,
-      title = paste("Average", input$yvar, "Over Time by Residential Type"),
-      color = "Residential Type"
-    ) +
-    theme_bw()
+    p <- ggplot(residential_year, aes(x = `List Year`, y = value, color = `Residential Type`, group = `Residential Type`, text = paste0(
+      "<b>Type:</b> ", `Residential Type`, "<br>",
+      "<b>Year:</b> ", `List Year`, "<br>",
+      "<b>", input$yvar, ":</b> ", scales::comma(value)
+    ))) +
+      geom_line(linewidth = 1.1) +
+      geom_point(size = 2) +
+      scale_y_continuous(labels = scales::comma) +
+      labs(
+        x = "List Year",
+        y = input$yvar,
+        title = paste("Average", input$yvar, "Over Time by Residential Type"),
+        color = "Residential Type"
+      ) +
+      theme_bw()
+    
+    ggplotly(p, tooltip = "text")
+  })
   
-  ggplotly(p, tooltip = "text")
+  output$plot3 <- renderPlotly({
+    df_clean <- filtered() %>% 
+      filter(!is.na(`Property Type`)) %>%
+      filter(`Property Type` %in% input$types)
+    
+    p <- ggplot(df_clean, aes(x = `Property Type`, fill = `Property Type`)) +
+      geom_bar() +
+      labs(
+        title = "Number of Sales by Property Type",
+        x = "Property Type",
+        y = "Number of Sales",
+        fill = "Property Type"
+      ) +
+      theme_bw() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
   })
 }
-  
+
 
 ### ---- Run app ----
 
 shinyApp(ui, server)
+
+
