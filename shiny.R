@@ -4,6 +4,7 @@ library(shiny)
 library(tidyverse)
 library(scales)
 library(shinyWidgets)
+library(plotly)
 
 
 ### ---- Define UI ----
@@ -48,8 +49,8 @@ ui <- fluidPage(
   
   # create spot for plot
   mainPanel(
-    plotOutput(outputId = "plot1"),
-    plotOutput(outputId = "plot2")
+    plotlyOutput(outputId = "plot1"),
+    plotlyOutput(outputId = "plot2")
   )
 )
 
@@ -67,7 +68,7 @@ server <- function(input, output) {
   })
   
   # Plot
-  output$plot1 <- renderPlot({
+  output$plot1 <- renderPlotly({
     data <- filtered() %>%
       filter(Town %in% input$towns)
     
@@ -78,7 +79,13 @@ server <- function(input, output) {
         .groups = "drop"
       )
     
-    ggplot(town_year, aes(x = `List Year`, y = value, color = Town)) +
+    town_year$`List Year` <- as.numeric(town_year$`List Year`)
+    
+    p <- ggplot(town_year, aes(x = `List Year`, y = value, color = Town, group = Town, text = paste0(
+      "<b>Town:</b> ", Town, "<br>",
+      "<b>Year:</b> ", `List Year`, "<br>",
+      "<b>", input$yvar, ":</b> ", scales::comma(value)
+    ))) +
       geom_line(linewidth = 1.1) +
       geom_point(size = 2) +
       scale_y_continuous(labels = scales::comma) +
@@ -89,9 +96,11 @@ server <- function(input, output) {
         color = "Town"
       ) +
       theme_bw()
+    
+    ggplotly(p, tooltip = "text")
   })
   
-  output$plot2 <- renderPlot({
+  output$plot2 <- renderPlotly({
     data <- filtered() %>%
       filter(!is.na(`Residential Type`))
     
@@ -102,7 +111,13 @@ server <- function(input, output) {
         .groups = "drop"
       )
     
-  ggplot(residential_year, aes(x = `List Year`, y = value, color = `Residential Type`)) +
+  residential_year$`List Year` <- as.numeric(residential_year$`List Year`)
+    
+  p <- ggplot(residential_year, aes(x = `List Year`, y = value, color = `Residential Type`, group = `Residential Type`, text = paste0(
+    "<b>Type:</b> ", `Residential Type`, "<br>",
+    "<b>Year:</b> ", `List Year`, "<br>",
+    "<b>", input$yvar, ":</b> ", scales::comma(value)
+  ))) +
     geom_line(linewidth = 1.1) +
     geom_point(size = 2) +
     scale_y_continuous(labels = scales::comma) +
@@ -113,6 +128,8 @@ server <- function(input, output) {
       color = "Residential Type"
     ) +
     theme_bw()
+  
+  ggplotly(p, tooltip = "text")
   })
 }
   
