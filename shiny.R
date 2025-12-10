@@ -55,15 +55,21 @@ ui <- fluidPage(
         `live-search` = TRUE,
         `selected-text-format` = "count > 3"
       )
+    ),
+    radioGroupButtons(
+      inputId = "groupChoice",
+      label = "Group Data By:",
+      choices = c("Town", "Residential Type"),
+      selected = "Town",
+      justified = TRUE
     )
   ),
   
   
   # create spot for plot
   mainPanel(
-    plotlyOutput(outputId = "plot1"),
-    plotlyOutput(outputId = "plot2"),
-    plotlyOutput(outputId = "plot3")
+    plotlyOutput(outputId = "linePlot"),
+    plotlyOutput(outputId = "barPlot")
   )
 )
 
@@ -81,85 +87,72 @@ server <- function(input, output) {
   })
   
   # Plot
-  output$plot1 <- renderPlotly({
-    data <- filtered() %>%
-      filter(Town %in% input$towns)
+  output$linePlot <- renderPlotly({
+    data <- filtered()
     
-    town_year <- data %>%
-      group_by(Town, `List Year`) %>%
-      summarize(
-        value = mean(.data[[input$yvar]], na.rm = TRUE),
-        .groups = "drop"
+    if (input$groupChoice == "Town") {
+      
+      data <- data %>% filter(Town %in% input$towns)
+      group_var <- "Town"
+      
+    } else {
+      
+      data <- data %>% filter(!is.na(`Residential Type`))
+      group_var <- "Residential Type"
+    }
+    
+    df_grouped <- data %>%
+      group_by(.data[[group_var]], `List Year`) %>%
+      summarize(value = mean(.data[[input$yvar]], na.rm = TRUE), .groups = "drop")
+    
+    p <- ggplot(df_grouped, aes(
+      x = `List Year`,
+      y = value,
+      color = .data[[group_var]],
+      group = .data[[group_var]],
+      text = paste0(
+        "<b>", group_var, ":</b> ", .data[[group_var]], "<br>",
+        "<b>Year:</b> ", `List Year`, "<br>",
+        "<b>", input$yvar, ":</b> ", scales::comma(value)
       )
-    
-    town_year$`List Year` <- as.numeric(town_year$`List Year`)
-    
-    p <- ggplot(town_year, aes(x = `List Year`, y = value, color = Town, group = Town, text = paste0(
-      "<b>Town:</b> ", Town, "<br>",
-      "<b>Year:</b> ", `List Year`, "<br>",
-      "<b>", input$yvar, ":</b> ", scales::comma(value)
-    ))) +
+    )) +
       geom_line(linewidth = 1.1) +
-      geom_point(size = 2) +
       scale_y_continuous(labels = scales::comma) +
+      geom_point(size = 2) +
       labs(
+        title = paste("Average", input$yvar, "Over Time by", group_var),
         x = "List Year",
         y = input$yvar,
-        title = paste("Average", input$yvar, "Over Time by Town"),
-        color = "Town"
+        color = group_var
       ) +
       theme_bw()
     
     ggplotly(p, tooltip = "text")
   })
   
-  output$plot2 <- renderPlotly({
-    data <- filtered() %>%
-      filter(!is.na(`Residential Type`))
+  output$barPlot <- renderPlotly({
+    data <- filtered()
     
-    residential_year <- data %>%
-      group_by(`Residential Type`, `List Year`) %>%
-      summarize(
-        value = mean(.data[[input$yvar]], na.rm = TRUE),
-        .groups = "drop"
-      )
+    if (input$groupChoice == "Town") {
+      data <- data %>% filter(Town %in% input$towns)
+      group_var <- "Town"
+    } else {
+      data <- data %>% filter(!is.na(`Residential Type`))
+      group_var <- "Residential Type"
+    }
     
-    residential_year$`List Year` <- as.numeric(residential_year$`List Year`)
-    
-    p <- ggplot(residential_year, aes(x = `List Year`, y = value, color = `Residential Type`, group = `Residential Type`, text = paste0(
-      "<b>Type:</b> ", `Residential Type`, "<br>",
-      "<b>Year:</b> ", `List Year`, "<br>",
-      "<b>", input$yvar, ":</b> ", scales::comma(value)
-    ))) +
-      geom_line(linewidth = 1.1) +
-      geom_point(size = 2) +
-      scale_y_continuous(labels = scales::comma) +
-      labs(
-        x = "List Year",
-        y = input$yvar,
-        title = paste("Average", input$yvar, "Over Time by Residential Type"),
-        color = "Residential Type"
-      ) +
-      theme_bw()
-    
-    ggplotly(p, tooltip = "text")
-  })
-  
-  output$plot3 <- renderPlotly({
-    df_clean <- filtered() %>% 
-      filter(!is.na(`Property Type`)) %>%
-      filter(`Property Type` %in% input$types)
-    
-    p <- ggplot(df_clean, aes(x = `Property Type`, fill = `Property Type`)) +
+    p <- ggplot(data, aes(x = .data[[group_var]], fill = .data[[group_var]])) +
       geom_bar() +
       labs(
-        title = "Number of Sales by Property Type",
-        x = "Property Type",
+        title = paste("Number of Sales by", group_var),
+        x = group_var,
         y = "Number of Sales",
-        fill = "Property Type"
+        fill = group_var
       ) +
+      scale_y_continuous(labels = scales::comma) +
       theme_bw() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    ggplotly(p)
   })
 }
 
@@ -167,5 +160,3 @@ server <- function(input, output) {
 ### ---- Run app ----
 
 shinyApp(ui, server)
-
-
