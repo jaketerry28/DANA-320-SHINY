@@ -91,11 +91,13 @@ server <- function(input, output) {
     data <- filtered()
     
     if (input$groupChoice == "Town") {
+      
       data <- data %>% filter(Town %in% input$towns)
       group_var <- "Town"
-    } 
-    else {
-      data <- data %>% filter(`Property Type` %in% input$types)
+      
+    } else {
+      
+      data <- data %>% filter(!is.na('Property Type' %in% input$types))
       group_var <- "Residential Type"
     }
     
@@ -135,7 +137,7 @@ server <- function(input, output) {
       data <- data %>% filter(Town %in% input$towns)
       group_var <- "Town"
     } else {
-      data <- data %>% filter(!is.na(`Residential Type`))
+      data <- data %>% filter(`Property Type` %in% input$types)
       group_var <- "Residential Type"
     }
     
