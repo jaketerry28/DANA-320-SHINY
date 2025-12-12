@@ -91,13 +91,11 @@ server <- function(input, output) {
     data <- filtered()
     
     if (input$groupChoice == "Town") {
-      
       data <- data %>% filter(Town %in% input$towns)
       group_var <- "Town"
-      
-    } else {
-      
-      data <- data %>% filter(!is.na(`Residential Type`))
+    } 
+    else {
+      data <- data %>% filter(`Property Type` %in% input$types)
       group_var <- "Residential Type"
     }
     
@@ -140,7 +138,7 @@ server <- function(input, output) {
       data <- data %>% filter(!is.na(`Residential Type`))
       group_var <- "Residential Type"
     }
-  
+    
     counts <- data %>%
       count(group = .data[[group_var]], name = "Amount")
     
