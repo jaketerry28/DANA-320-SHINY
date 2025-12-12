@@ -140,9 +140,22 @@ server <- function(input, output) {
       data <- data %>% filter(!is.na(`Residential Type`))
       group_var <- "Residential Type"
     }
+  
+    counts <- data %>%
+      count(group = .data[[group_var]], name = "Amount")
     
-    p <- ggplot(data, aes(x = .data[[group_var]], fill = .data[[group_var]])) +
-      geom_bar() +
+    counts$tooltip <- paste0(
+      "<b>", group_var, ":</b> ", counts$group, "<br>",
+      "<b>Amount:</b> ", scales::comma(counts$Amount)
+    )
+    
+    p <- ggplot(counts, aes(
+      x = group,
+      y = Amount,
+      fill = group,
+      text = tooltip
+    )) +
+      geom_col() +
       labs(
         title = paste("Number of Sales by", group_var),
         x = group_var,
@@ -152,7 +165,8 @@ server <- function(input, output) {
       scale_y_continuous(labels = scales::comma) +
       theme_bw() +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
-    ggplotly(p)
+    
+    ggplotly(p, tooltip = "text")
   })
 }
 
