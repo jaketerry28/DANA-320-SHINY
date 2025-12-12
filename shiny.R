@@ -156,6 +156,7 @@ server <- function(input, output) {
       text = tooltip
     )) +
       geom_col() +
+      scale_y_continuous(labels = scales::comma) +
       labs(
         title = paste("Number of Sales by", group_var),
         x = group_var,
